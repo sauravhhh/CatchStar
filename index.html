@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Catch the Stars</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Arial', sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(to bottom, #1a2a6c, #2a5298);
+            color: white;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        
+        #gameContainer {
+            width: 100%;
+            max-width: 400px;
+            height: 100vh;
+            max-height: 600px;
+            position: relative;
+            background: linear-gradient(to bottom, #0f2027, #203a43, #2c5364);
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        #gameCanvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+            touch-action: none;
+        }
+        
+        #gameUI {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.3);
+            z-index: 10;
+        }
+        
+        #score {
+            font-size: 20px;
+            font-weight: bold;
+        }
+        
+        #lives {
+            display: flex;
+            gap: 5px;
+        }
+        
+        .heart {
+            width: 25px;
+            height: 25px;
+            background-color: #ff4d4d;
+            position: relative;
+            transform: rotate(-45deg);
+            display: inline-block;
+        }
+        
+        .heart:before,
+        .heart:after {
+            content: "";
+            width: 25px;
+            height: 25px;
+            position: absolute;
+            left: 12.5px;
+            top: 0;
+            background: #ff4d4d;
+            border-radius: 50%;
+        }
+        
+        .heart:after {
+            left: 0;
+            top: -12.5px;
+        }
+        
+        #gameOverScreen, #startScreen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 20;
+        }
+        
+        h1 {
+            font-size: 32px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .button {
+            background: #4CAF50;
+            border: none;
+            color: white;
+            padding: 15px 32px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 18px;
+            margin: 10px 2px;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+            width: 80%;
+            max-width: 250px;
+        }
+        
+        .button:hover {
+            background: #45a049;
+        }
+        
+        #finalScore {
+            font-size: 24px;
+            margin: 20px 0;
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+        
+        #player {
+            position: absolute;
+            bottom: 20px;
+            width: 80px;
+            height: 20px;
+            background: #ff9800;
+            border-radius: 10px;
+            z-index: 5;
+        }
+        
+        .fallingObject {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            z-index: 4;
+        }
+        
+        .star {
+            background: #FFD700;
+            clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+        }
+        
+        .bomb {
+            background: #333;
+            border-radius: 50%;
+            position: relative;
+        }
+        
+        .bomb:before {
+            content: "";
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 8px;
+            height: 15px;
+            background: #8B4513;
+            border-radius: 2px;
+        }
+        
+        .bomb:after {
+            content: "";
+            position: absolute;
+            top: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 15px;
+            height: 15px;
+            background: #ff4d4d;
+            border-radius: 50% 0;
+            transform: translateX(-50%) rotate(45deg);
+        }
+        
+        #instructions {
+            margin: 20px 0;
+            text-align: center;
+            font-size: 16px;
+            line-height: 1.5;
+        }
+        
+        @media (max-width: 480px) {
+            #gameContainer {
+                max-width: 100%;
+                max-height: 100%;
+                border-radius: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <div id="gameUI">
+            <div id="score">Score: 0</div>
+            <div id="lives">
+                <div class="heart"></div>
+                <div class="heart"></div>
+                <div class="heart"></div>
+            </div>
+        </div>
+        
+        <div id="gameCanvas">
+            <div id="player"></div>
+        </div>
+        
+        <div id="startScreen">
+            <h1>Catch the Stars</h1>
+            <div id="instructions">
+                Move the basket to catch the stars.<br>
+                Avoid the bombs!<br>
+                <br>
+                <strong>Desktop:</strong> Use arrow keys or mouse<br>
+                <strong>Mobile:</strong> Touch and drag
+            </div>
+            <button id="startButton" class="button">Start Game</button>
+        </div>
+        
+        <div id="gameOverScreen" class="hidden">
+            <h1>Game Over</h1>
+            <div id="finalScore">Your score: 0</div>
+            <button id="restartButton" class="button">Play Again</button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Game elements
+            const gameContainer = document.getElementById('gameContainer');
+            const gameCanvas = document.getElementById('gameCanvas');
+            const player = document.getElementById('player');
+            const scoreElement = document.getElementById('score');
+            const livesContainer = document.getElementById('lives');
+            const startScreen = document.getElementById('startScreen');
+            const gameOverScreen = document.getElementById('gameOverScreen');
+            const startButton = document.getElementById('startButton');
+            const restartButton = document.getElementById('restartButton');
+            const finalScoreElement = document.getElementById('finalScore');
+            
+            // Game variables
+            let score = 0;
+            let lives = 3;
+            let gameActive = false;
+            let playerPosition = 50; // percentage from left
+            let gameSpeed = 2;
+            let spawnRate = 1500; // milliseconds
+            let lastSpawnTime = 0;
+            let animationId;
+            let touchStartX = 0;
+            let isTouching = false;
+            
+            // Initialize game
+            function initGame() {
+                score = 0;
+                lives = 3;
+                gameSpeed = 2;
+                spawnRate = 1500;
+                playerPosition = 50;
+                updateUI();
+                updatePlayerPosition();
+                
+                // Clear any existing falling objects
+                const fallingObjects = document.querySelectorAll('.fallingObject');
+                fallingObjects.forEach(obj => obj.remove());
+                
+                // Show game canvas
+                startScreen.classList.add('hidden');
+                gameOverScreen.classList.add('hidden');
+                
+                // Start game loop
+                gameActive = true;
+                lastSpawnTime = Date.now();
+                gameLoop();
+            }
+            
+            // Update UI elements
+            function updateUI() {
+                scoreElement.textContent = `Score: ${score}`;
+                
+                // Update hearts
+                livesContainer.innerHTML = '';
+                for (let i = 0; i < lives; i++) {
+                    const heart = document.createElement('div');
+                    heart.className = 'heart';
+                    livesContainer.appendChild(heart);
+                }
+            }
+            
+            // Update player position
+            function updatePlayerPosition() {
+                player.style.left = `calc(${playerPosition}% - 40px)`;
+            }
+            
+            // Create falling object
+            function createFallingObject() {
+                const object = document.createElement('div');
+                object.className = 'fallingObject';
+                
+                // Randomly decide if it's a star or bomb
+                const isBomb = Math.random() < 0.2; // 20% chance for bomb
+                
+                if (isBomb) {
+                    object.classList.add('bomb');
+                } else {
+                    object.classList.add('star');
+                }
+                
+                // Random horizontal position
+                const position = Math.random() * 90;
+                object.style.left = `${position}%`;
+                object.style.top = '0px';
+                
+                gameCanvas.appendChild(object);
+                
+                return {
+                    element: object,
+                    position: position,
+                    isBomb: isBomb,
+                    top: 0
+                };
+            }
+            
+            // Check collision
+            function checkCollision(fallingObj) {
+                const playerLeft = playerPosition - 10;
+                const playerRight = playerPosition + 10;
+                const objLeft = fallingObj.position;
+                const objRight = fallingObj.position + 7.5; // Approximate width percentage
+                
+                return (objLeft >= playerLeft && objLeft <= playerRight) || 
+                       (objRight >= playerLeft && objRight <= playerRight);
+            }
+            
+            // Game over
+            function gameOver() {
+                gameActive = false;
+                cancelAnimationFrame(animationId);
+                finalScoreElement.textContent = `Your score: ${score}`;
+                gameOverScreen.classList.remove('hidden');
+            }
+            
+            // Game loop
+            function gameLoop() {
+                if (!gameActive) return;
+                
+                const currentTime = Date.now();
+                
+                // Spawn new objects
+                if (currentTime - lastSpawnTime > spawnRate) {
+                    createFallingObject();
+                    lastSpawnTime = currentTime;
+                    
+                    // Gradually increase difficulty
+                    if (spawnRate > 800) {
+                        spawnRate -= 10;
+                    }
+                    if (gameSpeed < 5) {
+                        gameSpeed += 0.05;
+                    }
+                }
+                
+                // Move falling objects
+                const fallingObjects = document.querySelectorAll('.fallingObject');
+                fallingObjects.forEach(obj => {
+                    const currentTop = parseFloat(obj.style.top);
+                    const newTop = currentTop + gameSpeed;
+                    obj.style.top = `${newTop}px`;
+                    
+                    // Check if object reached bottom
+                    if (newTop > gameCanvas.clientHeight) {
+                        obj.remove();
+                        
+                        // If it was a star, lose a life
+                        if (obj.classList.contains('star')) {
+                            lives--;
+                            updateUI();
+                            
+                            if (lives <= 0) {
+                                gameOver();
+                            }
+                        }
+                    }
+                    
+                    // Check collision with player
+                    const objData = {
+                        element: obj,
+                        position: parseFloat(obj.style.left),
+                        isBomb: obj.classList.contains('bomb'),
+                        top: newTop
+                    };
+                    
+                    if (newTop > gameCanvas.clientHeight - 60 && checkCollision(objData)) {
+                        obj.remove();
+                        
+                        if (objData.isBomb) {
+                            lives--;
+                            updateUI();
+                            
+                            if (lives <= 0) {
+                                gameOver();
+                            }
+                        } else {
+                            score += 10;
+                            updateUI();
+                        }
+                    }
+                });
+                
+                animationId = requestAnimationFrame(gameLoop);
+            }
+            
+            // Player controls
+            function movePlayer(direction) {
+                if (!gameActive) return;
+                
+                if (direction === 'left' && playerPosition > 5) {
+                    playerPosition -= 5;
+                } else if (direction === 'right' && playerPosition < 95) {
+                    playerPosition += 5;
+                }
+                
+                updatePlayerPosition();
+            }
+            
+            // Keyboard controls
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowLeft') {
+                    movePlayer('left');
+                } else if (e.key === 'ArrowRight') {
+                    movePlayer('right');
+                }
+            });
+            
+            // Mouse controls
+            gameCanvas.addEventListener('mousemove', (e) => {
+                if (!gameActive) return;
+                
+                const rect = gameCanvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                playerPosition = (x / rect.width) * 100;
+                updatePlayerPosition();
+            });
+            
+            // Touch controls
+            gameCanvas.addEventListener('touchstart', (e) => {
+                if (!gameActive) return;
+                
+                isTouching = true;
+                const touch = e.touches[0];
+                const rect = gameCanvas.getBoundingClientRect();
+                touchStartX = touch.clientX - rect.left;
+                e.preventDefault();
+            });
+            
+            gameCanvas.addEventListener('touchmove', (e) => {
+                if (!gameActive || !isTouching) return;
+                
+                const touch = e.touches[0];
+                const rect = gameCanvas.getBoundingClientRect();
+                const touchX = touch.clientX - rect.left;
+                const diffX = touchX - touchStartX;
+                
+                playerPosition += (diffX / rect.width) * 100;
+                
+                // Keep player within bounds
+                if (playerPosition < 5) playerPosition = 5;
+                if (playerPosition > 95) playerPosition = 95;
+                
+                updatePlayerPosition();
+                touchStartX = touchX;
+                e.preventDefault();
+            });
+            
+            gameCanvas.addEventListener('touchend', () => {
+                isTouching = false;
+            });
+            
+            // Button event listeners
+            startButton.addEventListener('click', initGame);
+            restartButton.addEventListener('click', initGame);
+        });
+    </script>
+</body>
+  </html>
